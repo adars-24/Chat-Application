@@ -1,34 +1,95 @@
 import Message from '../models/Message.js';
-
 import Conversation from '../models/Conversation.js';
 
+// ----------------------------------------------------
+// SEND MESSAGE (FULLY FIXED)
+// ----------------------------------------------------
+export const newMessage = async (req, res) => {
+  try {
+    let { conversationId, senderId, receiverId, text, type } = req.body;
 
-export const newMessage = async (request, response) => {
-    
-console.log(request.body);
+    let conversation = null;
 
+    // 1️⃣ If conversationId not provided → create new conversation
+    if (!conversationId) {
+      conversation = new Conversation({
+        members: [senderId, receiverId],
+        message: text
+      });
 
-    const newMessage = new Message(request.body);
-    try {
-        console.log('blabla')
-        await newMessage.save();
-       
-        await Conversation.findByIdAndUpdate(request.body.conversationId, { message: request.body.text });
-        console.log('amannnnnnnnn')
-        response.status(200).json("Message has been sent successfully");
-    } catch (error) {
-        console.log(error);
-        response.status(500).json(error.message);
+      await conversation.save();
     }
 
-}
+    // 2️⃣ If conversationId exists → try finding it
+    else {
+      conversation = await Conversation.findById(conversationId);
 
-export const getMessage = async (request, response) => {
-    try {
-        const messages = await Message.find({ conversationId: request.params.id });
-        response.status(200).json(messages);
-    } catch (error) {
-        response.status(500).json(error);
+      // 3️⃣ If deleted earlier → create new one
+      if (!conversation) {
+        conversation = new Conversation({
+          members: [senderId, receiverId],
+          message: text
+        });
+
+        await conversation.save();
+      } else {
+        // 4️⃣ Normal update of preview
+        conversation.message = text;
+        await conversation.save();
+      }
     }
 
-}
+    // 5️⃣ Now save message with ALWAYS VALID conversation._id
+    const newMsg = new Message({
+      senderId,
+      receiverId,
+      conversationId: conversation._id,
+      type,
+      text
+    });
+
+    await newMsg.save();
+
+    // 6️⃣ Return correct conversation ID (important)
+    res.status(200).json({
+      success: true,
+      conversationId: conversation._id,
+    });
+
+  } catch (error) {
+    res.status(500).json(error.message);
+  }
+};
+
+
+// ----------------------------------------------------
+// GET ALL MESSAGES
+// ----------------------------------------------------
+export const getMessage = async (req, res) => {
+  try {
+    const messages = await Message.find({ conversationId: req.params.id });
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
+
+// ----------------------------------------------------
+// CLEAR ALL MESSAGES
+// ----------------------------------------------------
+export const clearMessages = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    await Message.deleteMany({ conversationId: id });
+
+    // clear preview
+    await Conversation.findByIdAndUpdate(id, { message: "" });
+
+    res.status(200).json("Chat cleared");
+
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};

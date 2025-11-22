@@ -4,7 +4,7 @@ import { AccountContext } from "../../../context/AccountProvider";
 
 import { Box, styled, Typography } from "@mui/material";
 
-import { formatDate , downloadMedia} from "../../../utils/common-utils";
+import { formatDate, downloadMedia } from "../../../utils/common-utils";
 
 import GetAppIcon from "@mui/icons-material/GetApp";
 
@@ -35,15 +35,38 @@ const Text = styled(Typography)`
   font-size: 14px;
   padding: 0 25px 0 5px;
 `;
+
 const Time = styled(Typography)`
   font-size: 10px;
   color: #919191;
-  margin-top: 6px;
-  word-break: keep-all;
   margin-top: auto;
 `;
 
-const Message = ({ message }) => {
+// ⭐ Highlight function
+function highlightText(text, highlight) {
+  if (!highlight || typeof highlight !== "string") return text;
+
+  const lowerText = text.toLowerCase();
+  const lowerHighlight = highlight.toLowerCase();
+
+  const start = lowerText.indexOf(lowerHighlight);
+  if (start === -1) return text;
+
+  const end = start + highlight.length;
+
+  return (
+    <>
+      {text.substring(0, start)}
+      <span style={{ backgroundColor: "yellow" }}>
+        {text.substring(start, end)}
+      </span>
+      {text.substring(end)}
+    </>
+  );
+}
+
+
+const Message = ({ message, highlight }) => {
   const { account } = useContext(AccountContext);
 
   return (
@@ -53,15 +76,15 @@ const Message = ({ message }) => {
           {message.type === "file" ? (
             <ImageMessage message={message} />
           ) : (
-            <TextMessage message={message} />
+            <TextMessage message={message} highlight={highlight} />
           )}
         </Own>
       ) : (
         <Wrapper>
- {message.type === "file" ? (
+          {message.type === "file" ? (
             <ImageMessage message={message} />
           ) : (
-            <TextMessage message={message} />
+            <TextMessage message={message} highlight={highlight} />
           )}
         </Wrapper>
       )}
@@ -73,9 +96,11 @@ const ImageMessage = ({ message }) => {
   return (
     <Box style={{ position: "relative" }}>
       {message?.text?.includes(".pdf") ? (
-        <Box style={{display: "flex"}}>
-          <img src={iconPDF} alt="pdf" style={{width: 80}} />
-          <Typography style={{fontSize: 14}}>{message.text.split('/').pop()}</Typography>
+        <Box style={{ display: "flex" }}>
+          <img src={iconPDF} alt="pdf" style={{ width: 80 }} />
+          <Typography style={{ fontSize: 14 }}>
+            {message.text.split("/").pop()}
+          </Typography>
         </Box>
       ) : (
         <img
@@ -93,6 +118,7 @@ const ImageMessage = ({ message }) => {
             marginRight: 10,
             border: "1px solid grey",
             borderRadius: "50%",
+            cursor: "pointer",
           }}
         />
         {formatDate(message.createdAt)}
@@ -101,10 +127,10 @@ const ImageMessage = ({ message }) => {
   );
 };
 
-const TextMessage = ({ message }) => {
+const TextMessage = ({ message, highlight }) => {
   return (
     <>
-      <Text>{message.text}</Text>
+      <Text>{highlightText(message.text, highlight)}</Text>
       <Time>{formatDate(message.createdAt)}</Time>
     </>
   );
