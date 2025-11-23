@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 
  const io = new Server(5000, {
     cors : {
-        origin: '*'
+        origin: 'https://chat-application-frontend-ankq.onrender.com'
     }
 })
 
